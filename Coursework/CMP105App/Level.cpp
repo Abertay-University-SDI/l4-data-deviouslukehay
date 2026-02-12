@@ -1,7 +1,7 @@
 #include "Level.h"
 
 Level::Level(sf::RenderWindow& hwnd, Input& in) :
-    BaseLevel(hwnd, in), m_timerText(m_font), m_winText(m_font)
+    BaseLevel(hwnd, in), m_timerText(m_font), m_winText(m_font), m_highScores(m_font)
 {
     m_isGameOver = false;
 
@@ -10,7 +10,6 @@ Level::Level(sf::RenderWindow& hwnd, Input& in) :
 
     // Initialise the Player (Rabbit)
     m_playerRabbit = new Rabbit();
-    m_playerRabbit->setPosition({ 40.f, 40.f });  // hardcoded. FOR NOW!
     if (!m_rabbitTexture.loadFromFile("gfx/rabbit_sheet.png")) std::cerr << "no rabbit texture";
     if (!m_sheepTexture.loadFromFile("gfx/sheep_sheet.png")) std::cerr << "no sheep texture";
     m_playerRabbit->setSize({ 32,32 });
@@ -18,15 +17,16 @@ Level::Level(sf::RenderWindow& hwnd, Input& in) :
     m_playerRabbit->setTexture(&m_rabbitTexture);
     m_playerRabbit->setWorldSize(levelSize.x, levelSize.y);
 
+    loadLevel("data/level.txt", levelSize);
 
-    // Initialise Sheep (initial position AND pointer to the rabbit
-    for (int i = 0; i < 3; i++)
-    {
-        m_sheepList.push_back(new Sheep(sf::Vector2f(200.f + 100 * i, 400.f - 100 * i), m_playerRabbit));
-        m_sheepList[i]->setTexture(&m_sheepTexture);
-        m_sheepList[i]->setSize({ 32,32 });
-        m_sheepList[i]->setWorldSize(levelSize.x, levelSize.y);
-    }
+    //// Initialise Sheep (initial position AND pointer to the rabbit
+    //for (int i = 0; i < 3; i++)
+    //{
+    //    m_sheepList.push_back(new Sheep(sf::Vector2f(200.f + 100 * i, 400.f - 100 * i), m_playerRabbit));
+    //    m_sheepList[i]->setTexture(&m_sheepTexture);
+    //    m_sheepList[i]->setSize({ 32,32 });
+    //    m_sheepList[i]->setWorldSize(levelSize.x, levelSize.y);
+    //}
 
     // Initialise Timer
     m_gameTimer.restart();
@@ -47,23 +47,28 @@ Level::Level(sf::RenderWindow& hwnd, Input& in) :
     m_winText.setFillColor(sf::Color::Blue);
     m_winText.setPosition({ -1000.f, 100.f });  // outside of view
 
+    m_highScores.setFont(m_font);
+    m_highScores.setFillColor(sf::Color(0xFFFFFFFF));
+    m_highScores.setCharacterSize(24);
+    m_highScores.setPosition({ 400.f,250.f });
 
-    // setup goal
-    m_goal.setSize({ 50, 50 });
-    m_goal.setFillColor(sf::Color::Blue);
-    m_goal.setPosition({ 250, 250 });
-    m_goal.setCollisionBox({ { 0,0 }, { 50,50 } });
+
+    //// setup goal
+    //m_goal.setSize({ 50, 50 });
+    //m_goal.setFillColor(sf::Color::Blue);
+    //m_goal.setPosition({ 250, 250 });
+    //m_goal.setCollisionBox({ { 0,0 }, { 50,50 } });
 
     // setup walls
-    for (int i = 0; i < 2; i++)
-    {
-        GameObject wall;
-        wall.setPosition({ 100.f + i * 600, 100.f});
-        wall.setSize({ 50,300 });
-        wall.setFillColor(sf::Color::Black);
-        wall.setCollisionBox({ { 0,0 }, { 50,300 } });
-        m_walls.push_back(wall);
-    }
+    //for (int i = 0; i < 2; i++)
+    //{
+    //    GameObject wall;
+    //    wall.setPosition({ 100.f + i * 600, 100.f});
+    //    wall.setSize({ 50,300 });
+    //    wall.setFillColor(sf::Color::Black);
+    //    wall.setCollisionBox({ { 0,0 }, { 50,300 } });
+    //    m_walls.push_back(wall);
+    //}
 
     m_bgFarm.setFillColor(sf::Color::Green);
     m_bgFarm.setSize(levelSize);
@@ -118,6 +123,85 @@ bool Level::CheckWinCondition()
     m_winText.setPosition({ 100.f, 100.f });
  
     return true;
+}
+
+void Level::writeHighScore(float time) {
+
+    std::ofstream highScore("Data/data.txt", std::ios::app);
+    if (!highScore) std::cerr << "No file exists, may not be able to create a new one... \n";
+
+    highScore << std::fixed << std::setprecision(3) << time << "\n";
+
+    std::cout << "Saved high score.\n";
+    highScore.close();
+}
+
+void Level::displayHighScores() {
+
+    std::ifstream highScore("Data/data.txt");
+    if (!highScore) std::cerr << "There is no data!\n";
+
+    std::string currentHighScore;
+    std::string scoreData;
+
+    while (std::getline(highScore, currentHighScore)) {
+
+        scoreData = scoreData + currentHighScore + "\n";
+    }
+
+    m_highScores.setString(scoreData);
+
+    std::cout << "Displayed high scores.\n";
+    highScore.close();
+}
+
+void Level::loadLevel(std::string filename, sf::Vector2f worldSize) {
+
+    std::ifstream levelFile("Data/level.txt");
+    if (!levelFile) std::cerr << "There is no data!\n";
+
+    std::string type;
+
+    int numberOfSheep = 0;
+
+    float xPos;
+    float yPos;
+    float width;
+    float height;
+
+    while (levelFile >> type) {
+
+        if (type == "RABBIT") {
+            levelFile >> xPos >> yPos;
+            m_playerRabbit->setPosition({ xPos, yPos });
+        }
+        if (type == "SHEEP") {
+            levelFile >> xPos >> yPos;
+            m_sheepList.push_back(new Sheep({xPos, yPos}, m_playerRabbit));
+            m_sheepList[numberOfSheep]->setTexture(&m_sheepTexture);
+            m_sheepList[numberOfSheep]->setSize({ 32,32 });
+            m_sheepList[numberOfSheep]->setWorldSize(worldSize.x, worldSize.y);
+            numberOfSheep++;
+        }
+        if (type == "WALL") {
+            levelFile >> xPos >> yPos >> width >> height;
+            GameObject wall;
+            wall.setPosition({xPos,yPos});
+            wall.setSize({ width,height });
+            wall.setFillColor(sf::Color::Black);
+            wall.setCollisionBox({ { 0,0 }, { width,height } });
+            m_walls.push_back(wall);
+        }
+        if (type == "GOAL") {
+            m_goal.setPosition({ xPos, yPos });
+            m_goal.setSize({ width, height });
+            m_goal.setFillColor(sf::Color::Blue);
+            m_goal.setCollisionBox({ { 0,0 }, { width,height } });
+
+        }
+
+    }
+
 }
 
 
@@ -183,6 +267,10 @@ void Level::update(float dt)
     manageCollisions();
     UpdateCamera();
     m_isGameOver = CheckWinCondition();
+    if (m_isGameOver) {
+        writeHighScore(timeElapsed);
+        displayHighScores();
+    }
 
 }
 
@@ -200,6 +288,7 @@ void Level::render()
     m_window.draw(*m_playerRabbit);
     m_window.draw(m_timerText);
     m_window.draw(m_winText);
+    m_window.draw(m_highScores);
     
 	endDraw();
 }

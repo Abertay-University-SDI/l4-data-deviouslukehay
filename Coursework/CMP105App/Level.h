@@ -5,6 +5,9 @@
 #include "Framework/Collision.h"
 #include "Sheep.h"
 #include "Rabbit.h"
+#include <iostream>
+#include <sstream>
+#include <fstream>
 
 class Level : BaseLevel {
 public:
@@ -19,6 +22,9 @@ private:
     void UpdateCamera();
     bool CheckWinCondition();
     void manageCollisions();
+    void writeHighScore(float time);
+    void displayHighScores();
+    void loadLevel(std::string filename, sf::Vector2f worldSize);
 
     sf::View m_cameraView;
 
@@ -40,5 +46,6 @@ private:
     sf::Font m_font;
     sf::Text m_timerText;
     sf::Text m_winText;
+    sf::Text m_highScores;
 	
 };
