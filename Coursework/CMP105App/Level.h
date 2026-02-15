@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <algorithm>
 
 class Level : BaseLevel {
 public:
@@ -23,6 +24,7 @@ private:
     bool CheckWinCondition();
     void manageCollisions();
     void writeHighScore(float time);
+    void sortHighScore();
     void displayHighScores();
     void loadLevel(std::string filename, sf::Vector2f worldSize);
 

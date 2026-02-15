@@ -127,38 +127,71 @@ bool Level::CheckWinCondition()
 
 void Level::writeHighScore(float time) {
 
-    std::ofstream highScore("Data/data.txt", std::ios::app);
-    if (!highScore) std::cerr << "No file exists, may not be able to create a new one... \n";
+    std::ofstream highScoreFile("Data/data.txt", std::ios::app);
+    if (!highScoreFile) std::cerr << "No file exists, may not be able to create a new one... \n";
 
-    highScore << std::fixed << std::setprecision(3) << time << "\n";
+    highScoreFile << std::fixed << std::setprecision(3) << time << "\n";
 
     std::cout << "Saved high score.\n";
-    highScore.close();
+    highScoreFile.close();
+
+    sortHighScore();
+}
+
+void Level::sortHighScore() {
+
+    std::string currentHighScore;
+    std::string scoreData;
+    std::vector <float> scores;
+
+    std::ifstream highScoreRead("Data/data.txt");
+    if (!highScoreRead) std::cerr << "There is no data!\n";
+
+    while (std::getline(highScoreRead, currentHighScore)) {
+        scores.push_back(std::stof(currentHighScore));
+        std::cout << "added a high score to the vector\n";
+    }
+
+    //only sort if needed
+    if (scores.size() < 2) {
+        highScoreRead.close();
+        std::cout << "Sorting is impossible - returning early!\n";
+        return;
+    }        
+    else std::sort(scores.begin(), scores.end(), std::greater<float>());
+        
+    std::ofstream highScoreWrite("Data/data.txt");
+    if (!highScoreWrite) std::cerr << "There is no data!\n"; //nothing *should've* changed, but just in case....
+
+    for (float a : scores)
+    highScoreWrite << std::fixed << std::setprecision(3) << a << "\n";
+
+    highScoreWrite.close();
+
 }
 
 void Level::displayHighScores() {
 
-    std::ifstream highScore("Data/data.txt");
-    if (!highScore) std::cerr << "There is no data!\n";
+    std::ifstream highScoreFile("Data/data.txt");
+    if (!highScoreFile) std::cerr << "There is no data!\n";
 
     std::string currentHighScore;
     std::string scoreData;
 
-    while (std::getline(highScore, currentHighScore)) {
-
+    while (std::getline(highScoreFile, currentHighScore)) {
+        std::cout << "adding score " << currentHighScore << " to the scores string...\n";
         scoreData = scoreData + currentHighScore + "\n";
     }
 
     m_highScores.setString(scoreData);
-
-    std::cout << "Displayed high scores.\n";
-    highScore.close();
+    std::cout << "Displayed sorted high scores.\n";
+    highScoreFile.close();
 }
 
 void Level::loadLevel(std::string filename, sf::Vector2f worldSize) {
 
     std::ifstream levelFile("Data/level.txt");
-    if (!levelFile) std::cerr << "There is no data!\n";
+    if (!levelFile) std::cerr << "There is no level data file!\n";
 
     std::string type;
 
@@ -193,6 +226,7 @@ void Level::loadLevel(std::string filename, sf::Vector2f worldSize) {
             m_walls.push_back(wall);
         }
         if (type == "GOAL") {
+            levelFile >> xPos >> yPos >> width >> height;
             m_goal.setPosition({ xPos, yPos });
             m_goal.setSize({ width, height });
             m_goal.setFillColor(sf::Color::Blue);
